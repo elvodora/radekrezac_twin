@@ -59,14 +59,23 @@ html, body, gradio-app { background: var(--twin-bg) !important; }
 }
 .gradio-container * { min-width: 0; }
 
-/* ---------- Title ---------- */
+/* ---------- Title banner (aiclone.jpeg background) ---------- */
 .gradio-container h1 {
-  color: var(--twin-text) !important;
+  position: relative;
+  display: flex !important;
+  align-items: flex-end;
+  min-height: 240px;
+  color: #ffffff !important;
   font-size: 26px !important;
   font-weight: 700 !important;
   letter-spacing: -0.02em !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  background:
+    linear-gradient(to top, rgba(13, 13, 16, 0.85) 0%, rgba(13, 13, 16, 0) 45%),
+    url('/gradio_api/file=aiclone.jpeg') center 30% / cover no-repeat;
+  border: 1px solid var(--twin-border);
   border-left: 3px solid var(--twin-gold);
-  padding-left: 12px !important;
+  padding: 16px 18px !important;
   margin: 4px 0 8px !important;
   text-align: left !important;
 }
@@ -348,7 +357,7 @@ button[variant="primary"] svg {
 /* ---------- Mobile ---------- */
 @media (max-width: 640px) {
   .gradio-container { padding: 22px 14px 36px !important; }
-  .gradio-container h1 { font-size: 22px !important; }
+  .gradio-container h1 { font-size: 22px !important; min-height: 180px; }
 }
 """
 
