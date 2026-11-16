@@ -1,0 +1,26 @@
+name: Deploy to Vercel
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel   # pin a version, e.g. vercel@<x.y.z>, for reproducible CI
+      - name: Deploy production
+        if: github.ref == 'refs/heads/main'
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy preview
+        if: github.ref != 'refs/heads/main'
+        run: vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }}

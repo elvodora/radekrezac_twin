@@ -116,7 +116,7 @@ Use this when deployments must wait for other CI steps. Disconnect the Git integ
 
 1. Run `vercel link` locally. Copy `orgId` and `projectId` from `.vercel/project.json`.
 2. Create a token at **vercel.com > Account Settings > Tokens**.
-3. In GitHub: **Settings > Secrets and variables > Actions**, add `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+3. In GitHub: **Settings > Secrets and variables > Actions**, add Repository secrets`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 4. Add `.github/workflows/deploy.yml`:
 
 ```yaml
