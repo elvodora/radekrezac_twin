@@ -33,5 +33,5 @@ if __name__ == "__main__":
         examples=EXAMPLES,
         title="Radek Rezac's Digital Twin",
         description="Talk to my AI twin about my career",
-        chatbot=gr.Chatbot(show_label=False, height="60vh", min_height=460),
+        chatbot=gr.Chatbot(show_label=False, height="55vh", min_height=420),
     ).launch(css=CSS, js=JS, theme=gr.themes.Base(), allowed_paths=[str(BANNER_IMAGE)])
