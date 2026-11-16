@@ -33,7 +33,7 @@ There are no tests or linters configured.
 
 ## Deployment
 
-Deploys to Vercel as a container image (`Dockerfile.vercel` at the repo root), triggered by GitHub pushes: `main` goes to production and other branches to preview. Runtime secrets are set as Vercel project environment variables. Full setup: `doc/cicd.md`.
+Deploys to Vercel as a container image (`Dockerfile.vercel` at the repo root). `vercel.json` must keep `"framework": "container"`; otherwise Vercel detects `src/app.py` as FastAPI and the build fails. It is triggered by GitHub pushes: `main` goes to production and other branches to preview. Runtime secrets are set as Vercel project environment variables. Full setup: `doc/cicd.md`.
 
 ## Change log
 

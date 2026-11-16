@@ -4,7 +4,7 @@ How to make every push to this GitHub repository deploy the Gradio AI Twin (`src
 
 ## 1. Approach
 
-The app is a self-hosted Gradio server (`gr.ChatInterface(...).launch()`), not a plain ASGI `app` object, so it is deployed as a **Vercel container image**: Vercel detects a `Dockerfile.vercel` at the repository root, builds the image on every deployment and runs it as an autoscaling Vercel Function.
+The app is a self-hosted Gradio server (`gr.ChatInterface(...).launch()`), not a plain ASGI `app` object, so it is deployed as a **Vercel container image** (Container Runtime, Beta on all plans). With the project's framework preset set to `container` (see `vercel.json` below), Vercel builds `Dockerfile.vercel` on every deployment and runs it as an autoscaling Vercel Function.
 
 Why a container instead of Vercel's zero-config Python runtime:
 
@@ -39,6 +39,17 @@ CMD ["python", "-m", "src.app"]
 
 The container must serve HTTP on port 80 (or on the port set in the `PORT` project environment variable). Data files (`profile.pdf`, `summary.txt`, `aiclone.jpeg`) are resolved relative to the modules, so the working directory does not matter.
 
+### `vercel.json` (repository root)
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "container"
+}
+```
+
+This file is required. On import, Vercel detects `src/app.py` and saves the project as **FastAPI**, which ignores the Dockerfile and fails the build with `Found src/app.py but it does not define a top-level "app" FastAPI instance`. `"framework": null` ("Other") is not enough either: the build succeeds but produces an empty deployment. Only the `container` preset builds the image.
+
 ### `.vercelignore` (repository root)
 
 Keeps local-only files out of CLI uploads:
@@ -65,7 +76,7 @@ Secrets and the local Vercel link are ignored:
 
 1. Push the repository to GitHub.
 2. In the Vercel dashboard: **Add New... > Project > Import Git Repository** and pick this repository (install the Vercel GitHub App when prompted).
-3. Keep **Root Directory** as the repository root, where `Dockerfile.vercel` lives. No framework preset, build command or output directory is needed.
+3. Keep **Root Directory** as the repository root, where `Dockerfile.vercel` lives. The framework preset comes from `vercel.json` (`container`). Whatever the import screen shows is overridden. No build command or output directory is needed.
 4. Add the environment variables (section 4) **before** the first deployment, then click **Deploy**.
 
 From then on:
@@ -134,12 +145,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7       # node24 runtime; v4 triggers the Node.js 20 deprecation warning
+      - uses: pnpm/action-setup@v6      # node24 runtime
         with:
           version: 10
       - name: Install Vercel CLI
-        run: pnpm add -g vercel   # pin a version, e.g. vercel@<x.y.z>, for reproducible CI
+        run: pnpm add -g vercel@65.16.0
       - name: Deploy production
         if: github.ref == 'refs/heads/main'
         run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
@@ -159,6 +170,17 @@ vercel logs <deployment-url>      # runtime logs ("Tool called: ..." lines come 
 ```
 
 Open the URL. The title banner should show the `aiclone.jpeg` background, and a question should get an answer.
+
+Preview deployments are behind Vercel Authentication. Use `vercel curl <deployment-url>` to fetch them from the CLI. `vercel inspect <deployment-url>` should list a `λ container` build; an empty Builds list means the image was not built.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Found src/app.py but it does not define a top-level "app" FastAPI instance` | Framework preset is FastAPI | `vercel.json` with `"framework": "container"` |
+| Build finishes in milliseconds, no `λ container` in `vercel inspect` | Preset is "Other" (`null`) | Same as above |
+| Page returns 500 | `OPENAI_API_KEY` not set: `OpenAI()` raises `Missing credentials` at import | Set the section 4 variables, then redeploy |
+| `Node.js 20 is deprecated ... actions/checkout@v4, pnpm/action-setup@v4` | Warning only, not a failure | Use `actions/checkout@v7`, `pnpm/action-setup@v6` |
 
 ## 7. Known limitations
 

@@ -12,12 +12,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
       - name: Install Vercel CLI
-        run: pnpm add -g vercel   # pin a version, e.g. vercel@<x.y.z>, for reproducible CI
+        run: pnpm add -g vercel@65.16.0
       - name: Deploy production
         if: github.ref == 'refs/heads/main'
         run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
