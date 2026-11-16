@@ -23,7 +23,7 @@ There are no tests or linters configured.
 - `src/context.py`: builds `TWIN_SYSTEM_PROMPT` at import time from `profile.pdf` (text via pypdf) and `summary.txt`. Changing the twin's knowledge means editing these data files, not code.
 - `src/app.py`: `chat()` runs a manual OpenAI Chat Completions tool loop that re-calls the model while `finish_reason == "tool_calls"`. The model is set in `MODEL_NAME`. It launches `gr.ChatInterface` with the CSS/JS from `styles.py`.
 - `src/tools.py`: tool functions, their JSON schemas and `tool_map`. Adding a tool takes all three: the function, a schema appended to `tools`, and an entry in `tool_map`.
-- `src/styles.py`: `CSS`, `JS`, `EXAMPLES` and `BANNER_IMAGE`. Light/dark theming keys off Gradio's `.dark` class on `<body>`.
+- `src/styles.py`: `CSS`, `JS`, `EXAMPLES` and `BANNER_IMAGE`. Light/dark theming keys off Gradio's `.dark` class on `<body>`. Layout width is set by `max-width` on `.gradio-container`; it is currently `100%` (full width).
 
 ## Conventions
 
