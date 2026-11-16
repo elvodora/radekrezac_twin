@@ -12,3 +12,5 @@ wheels/
 # Secrets and Vercel CLI link
 .env
 .vercel
+
+.vercel
