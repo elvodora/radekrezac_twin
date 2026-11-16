@@ -1,5 +1,9 @@
 """Styling constants for the digital twin Gradio app."""
 
+from pathlib import Path
+
+BANNER_IMAGE = Path(__file__).parent / "aiclone.jpeg"
+
 GOLD = "#ecad0a"
 BLUE = "#209dd7"
 PURPLE = "#753991"
@@ -72,7 +76,7 @@ html, body, gradio-app { background: var(--twin-bg) !important; }
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   background:
     linear-gradient(to top, rgba(13, 13, 16, 0.85) 0%, rgba(13, 13, 16, 0) 45%),
-    url('/gradio_api/file=aiclone.jpeg') center 30% / cover no-repeat;
+    url('/gradio_api/file=__BANNER_IMAGE__') center 30% / cover no-repeat;
   border: 1px solid var(--twin-border);
   border-left: 3px solid var(--twin-gold);
   padding: 16px 18px !important;
@@ -360,6 +364,8 @@ button[variant="primary"] svg {
   .gradio-container h1 { font-size: 22px !important; min-height: 180px; }
 }
 """
+
+CSS = CSS.replace("__BANNER_IMAGE__", BANNER_IMAGE.as_posix())
 
 JS = """
 () => {
