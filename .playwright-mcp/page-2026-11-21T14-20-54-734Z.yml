@@ -1,0 +1,23 @@
+- generic [ref=f6e5]:
+  - main [ref=f6e6]:
+    - generic [ref=f6e8]:
+      - heading "Radek Rezac's Digital Twin" [level=1] [ref=f6e13]
+      - paragraph [ref=f6e18]: Talk to my AI twin about my career
+      - log "chatbot conversation" [ref=f6e21]:
+        - complementary [ref=f6e22]:
+          - list [ref=f6e23]:
+            - 'button "Select example 1: Tell me about your background and experience." [ref=f6e24] [cursor=pointer]':
+              - generic [ref=f6e25]: Tell me about your background and experience.
+            - 'button "Select example 2: What kinds of projects are you working on now?" [ref=f6e27] [cursor=pointer]':
+              - generic [ref=f6e28]: What kinds of projects are you working on now?
+            - 'button "Select example 3: What are your strongest technical skills?" [ref=f6e30] [cursor=pointer]':
+              - generic [ref=f6e31]: What are your strongest technical skills?
+            - 'button "Select example 4: How can I get in touch with you?" [ref=f6e33] [cursor=pointer]':
+              - generic [ref=f6e34]: How can I get in touch with you?
+      - generic [ref=f6e42]:
+        - generic [ref=f6e43]: Textbox
+        - generic [ref=f6e44]:
+          - textbox "Textbox" [active] [ref=f6e45]:
+            - /placeholder: Type a message...
+          - button [ref=f6e46] [cursor=pointer]
+  - status [ref=f6e50]
