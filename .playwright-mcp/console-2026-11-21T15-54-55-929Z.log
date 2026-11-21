@@ -1,0 +1,12 @@
+[     378ms] [ERROR] Error reading from localStorage: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at l (http://127.0.0.1:7899/assets/Index-BS3PvZAH.js:1:70441)
+    at http://127.0.0.1:7899/assets/Index-BS3PvZAH.js:1:70836
+    at Q (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:30780)
+    at http://127.0.0.1:7899/assets/index-C5ocWp53.js:27:13013
+    at yc (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:27862)
+    at Sc (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:29063)
+    at Ro (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:15829)
+    at #g (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:11170)
+    at e.flush (http://127.0.0.1:7899/assets/index-C5ocWp53.js:26:12750) @ http://127.0.0.1:7899/assets/Index-BS3PvZAH.js:1
+[     435ms] [INFO] Autofocus processing was blocked because a document already has a focused element. @ http://127.0.0.1:7899/:1

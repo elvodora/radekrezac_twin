@@ -2,136 +2,50 @@
 
 ## Problem
 
-On Vercel the app runs from `Dockerfile.vercel` with `CMD ["python", "-m", "src.app"]`. Nothing listens on port 80 until `src.app` has imported gradio, openai and pypdf, parsed `profile.pdf` and started the Gradio server. On a cold start the visitor's browser waits on a blank page with no feedback.
+Nothing listens on port 80 until `src.app` has imported gradio, openai and pypdf and parsed `profile.pdf` (about 10 s). On a Vercel cold start the visitor would wait on a blank page.
 
-## Approach
+## Design
 
-Bind port 80 within milliseconds with a tiny stdlib HTTP server that returns an "AI Twin is loading" page. Import the real app in the meantime. When it is ready, stop the loading server and launch Gradio on the same port. The loading page reloads itself every 2 seconds, so the visitor lands on the chat as soon as Gradio is up.
+`Dockerfile.vercel` runs `python -m src.boot`. `src/boot.py`:
+
+1. Binds the port immediately with a stdlib `ThreadingHTTPServer`, before any heavy import.
+2. Answers `/` with an "AI Twin is loading" page (200, `no-store`, `<meta http-equiv="refresh" content="2">`).
+3. Holds every other request (assets, API, HEAD, POST) until the app is ready, then answers `307` to the same URL.
+4. Builds the app with `src.app.build_app()` (Gradio mounted on FastAPI via `gr.mount_gradio_app`).
+5. Stops the loading server but keeps its listening socket open, and runs uvicorn on that same socket: `uvicorn.Server(config).run(sockets=[loader.socket])`.
 
 ```
-container start -> boot.py binds :80 -> serves loading page (auto refresh)
-                -> imports src.app (slow)
-                -> stops loading server -> demo launches on :80 -> next refresh shows chat
+cold start -> boot.py binds :80
+           -> "/"        : loading page, refresh every 2 s
+           -> other paths: held, then 307 to same URL
+           -> app built  -> same socket handed to uvicorn -> next refresh shows the chat
 ```
 
-Only the Python standard library is used for the loading server, so it starts before any heavy import.
+`src/app.py` exposes `build_demo()`, `build_app()` and `UI_OPTIONS` (css, js, theme, allowed_paths). `uv run python -m src.app` still runs `build_demo().launch(**UI_OPTIONS)` for local use.
 
-## Steps
+## Why each part is needed (found on Vercel)
 
-### 1. Make `src/app.py` importable without launching
+- **Several instances serve one page load.** A cold-start test on production showed the Gradio HTML coming from a ready instance while its `/assets/*.js` requests went to another instance still starting. The first version answered every path with the loading page, so the scripts came back as `text/html`, the browser rejected them ("Expected a JavaScript module script ... MIME type of text/html") and the page stayed blank. Hence: loading page only on `/`, hold-and-redirect for everything else.
+- **No gap at the handover.** The first version closed the socket and let `demo.launch()` bind the port again. A request routed to the instance in between was refused, which Vercel reports as `500 FUNCTION_INVOCATION_FAILED`. Handing the open socket to uvicorn means connections wait in the backlog instead.
 
-Move the `gr.ChatInterface(...).launch(...)` block that sat under `if __name__ == "__main__":` into a function, with its arguments unchanged:
-
-```python
-def launch():
-    """Build the chat UI and start the Gradio server."""
-    gr.ChatInterface(chat, ...).launch(css=CSS, js=JS, ...)
-
-
-if __name__ == "__main__":
-    launch()
-```
-
-`uv run python -m src.app` keeps working locally.
-
-### 2. Add `src/boot.py`
-
-```python
-"""Container entrypoint: serve a loading page while the Gradio app starts."""
-
-import os
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
-LOADING_HTML = b"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="2">
-<title>AI Twin is loading</title>
-<style>
-  body { margin: 0; height: 100vh; display: grid; place-items: center;
-         font-family: system-ui, sans-serif; background: #f7f7f8; color: #222; }
-  @media (prefers-color-scheme: dark) { body { background: #111; color: #eee; } }
-  .box { text-align: center; }
-  .spinner { width: 40px; height: 40px; margin: 0 auto 16px; border-radius: 50%;
-             border: 4px solid #ccc; border-top-color: #4f46e5;
-             animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-</head>
-<body>
-  <div class="box">
-    <div class="spinner"></div>
-    <h2>AI Twin is loading...</h2>
-    <p>This takes a few seconds. The page refreshes automatically.</p>
-  </div>
-</body>
-</html>"""
-
-
-class LoadingHandler(BaseHTTPRequestHandler):
-    """Answer every GET with the loading page."""
-
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(LOADING_HTML)
-
-    def log_message(self, *args):
-        pass
-
-
-def main():
-    """Serve the loading page, import the app, then hand the port to Gradio."""
-    port = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
-    loader = ThreadingHTTPServer(("0.0.0.0", port), LoadingHandler)
-    threading.Thread(target=loader.serve_forever, daemon=True).start()
-    print(f"Loading page on port {port}, importing app")
-
-    from src.app import launch  # slow part: gradio, openai, pypdf, profile parsing
-
-    loader.shutdown()
-    loader.server_close()
-    launch()
-
-
-if __name__ == "__main__":
-    main()
-```
-
-Notes:
-- `Cache-Control: no-store` keeps browsers and the Vercel CDN from caching the loading page.
-- Status 200 (not 503) so a platform health check or error page does not replace the loading page.
-- Between `server_close()` and Gradio binding the port there is a gap of well under a second; a refresh that hits it simply retries 2 seconds later.
-
-### 3. Update `Dockerfile.vercel`
-
-Use the new entrypoint and precompile bytecode so imports are faster on cold start:
+## Dockerfile
 
 ```dockerfile
 RUN uv pip install --system --no-cache --compile-bytecode -r src/requirements.txt
-
 COPY src/ src/
 RUN python -m compileall -q src
-
 CMD ["python", "-m", "src.boot"]
 ```
 
-No change is needed in `.github/workflows/deploy.yml`; the next push deploys the new image.
-
-## Status
-
-Implemented on 2026-11-21. Local test with `GRADIO_SERVER_PORT=7899 uv run python -m src.boot`: the loading page was served for about 10 seconds, then the same port served the Gradio app.
+No change is needed in `.github/workflows/deploy.yml`.
 
 ## Verify
 
-1. Locally: `docker build -f Dockerfile.vercel -t twin .` then `docker run --rm -p 8080:80 --env-file .env twin`. Open `http://localhost:8080` immediately: the loading page shows, then the chat appears after the app imports.
-2. On Vercel: push to a branch, open the preview URL after a period of inactivity (cold start) and confirm the loading page appears before the chat.
+1. Locally: `GRADIO_SERVER_PORT=7899 uv run python -m src.boot`. During loading, `curl -L http://127.0.0.1:7899/assets/<file>.js` must wait, then return `text/javascript` after one redirect. `/` must go from the loading page to Gradio with no refused connection.
+2. Docker: `docker build -f Dockerfile.vercel -t twin .` then `docker run --rm -p 8090:80 --env-file .env twin`, open `http://localhost:8090` immediately.
+3. Vercel: leave production idle for more than 5 minutes (30 s for preview) so it scales to zero, then open the public URL. The loading page must turn into the chat with no blank page and no manual refresh.
 
 ## Limits
 
-The loading page appears once the container process runs. Time Vercel spends pulling and starting the image happens before that, and no code in the container can show a message during it. Keep the image small (slim base, only `src/requirements.txt`) to keep that part short.
+- Time Vercel spends pulling and starting the image happens before `boot.py` runs; nothing in the container can show a message then.
+- Gradio's queue (send message, stream reply) assumes requests reach the same process. Vercel gives no instance affinity, so chat may still misbehave if Vercel spreads one session over several instances.

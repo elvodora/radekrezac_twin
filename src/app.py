@@ -27,16 +27,26 @@ def chat(message, history):
     return response.choices[0].message.content
 
 
-def launch():
-    """Build the chat UI and start the Gradio server."""
-    gr.ChatInterface(
+UI_OPTIONS = dict(css=CSS, js=JS, theme=gr.themes.Base(), allowed_paths=[str(BANNER_IMAGE)])
+
+
+def build_demo():
+    """Build the chat UI."""
+    return gr.ChatInterface(
         chat,
         examples=EXAMPLES,
         title="Radek Rezac's Digital Twin",
         description="Talk to my AI twin about my career",
         chatbot=gr.Chatbot(show_label=False, height="55vh", min_height=360),
-    ).launch(css=CSS, js=JS, theme=gr.themes.Base(), allowed_paths=[str(BANNER_IMAGE)])
+    )
+
+
+def build_app():
+    """Return the chat UI mounted on a FastAPI app, for serving with uvicorn."""
+    from fastapi import FastAPI
+
+    return gr.mount_gradio_app(FastAPI(), build_demo(), path="/", **UI_OPTIONS)
 
 
 if __name__ == "__main__":
-    launch()
+    build_demo().launch(**UI_OPTIONS)

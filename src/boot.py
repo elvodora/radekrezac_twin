@@ -1,4 +1,14 @@
-"""Container entrypoint: serve a loading page while the Gradio app starts."""
+"""Container entrypoint: serve a loading page while the Gradio app starts.
+
+Vercel can spread one page load over several container instances, so an
+instance that is still starting may receive asset or API requests for a page
+served by a ready instance. Only "/" gets the loading page; any other request
+is held until this instance is ready and then redirected to the same URL.
+
+The listening socket is never closed: it is handed from the loading server to
+uvicorn, so requests arriving during the switch wait in the backlog instead of
+being refused.
+"""
 
 import os
 import threading
@@ -31,33 +41,58 @@ LOADING_HTML = b"""<!doctype html>
 </body>
 </html>"""
 
+ready = threading.Event()
+
 
 class LoadingHandler(BaseHTTPRequestHandler):
-    """Answer every GET with the loading page."""
+    """Loading page for "/", hold-and-redirect for everything else."""
 
     def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        if self.path.split("?")[0] == "/":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(LOADING_HTML)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(LOADING_HTML)
+        else:
+            self.redirect_when_ready()
+
+    def do_HEAD(self):
+        self.redirect_when_ready()
+
+    def do_POST(self):
+        self.redirect_when_ready()
+
+    def redirect_when_ready(self):
+        """Wait until the app is ready, then send the client back to the same URL."""
+        ready.wait(timeout=120)
+        self.send_response(307)
+        self.send_header("Location", self.path)
+        self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(LOADING_HTML)
 
     def log_message(self, *args):
         pass
 
 
 def main():
-    """Serve the loading page, import the app, then hand the port to Gradio."""
+    """Serve the loading page, build the app, then hand the socket to uvicorn."""
+    host = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     port = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
-    loader = ThreadingHTTPServer(("0.0.0.0", port), LoadingHandler)
+    loader = ThreadingHTTPServer((host, port), LoadingHandler)
     threading.Thread(target=loader.serve_forever, daemon=True).start()
-    print(f"Loading page on port {port}, importing app")
+    print(f"Loading page on {host}:{port}, importing app")
 
-    from src.app import launch  # slow part: gradio, openai, pypdf, profile parsing
+    import uvicorn
+    from src.app import build_app  # slow part: gradio, openai, pypdf, profile parsing
 
-    loader.shutdown()
-    loader.server_close()
-    launch()
+    app = build_app()
+    loader.shutdown()  # stop accepting; the socket stays open and queues connections
+    ready.set()  # held requests now get their redirect
+    print("App ready, handing socket to uvicorn")
+    uvicorn.Server(uvicorn.Config(app, log_level="warning")).run(sockets=[loader.socket])
 
 
 if __name__ == "__main__":

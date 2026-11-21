@@ -1,0 +1,36 @@
+- generic [ref=e21]:
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - heading "Radek Rezac's Digital Twin" [level=1] [ref=e29]
+      - paragraph [ref=e34]: Talk to my AI twin about my career
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - button [ref=e38] [cursor=pointer]
+          - button "Clear" [ref=e42] [cursor=pointer]
+          - button "Copy conversation" [ref=e50] [cursor=pointer]
+        - log "chatbot conversation" [ref=e55]:
+          - generic [ref=e56]:
+            - 'generic "user''s message: In one sentence, what do you do?" [ref=e61]':
+              - paragraph [ref=e64]: In one sentence, what do you do?
+            - button "Copy message" [ref=e67] [cursor=pointer]
+            - 'generic "bot''s message: I design and deliver enterprise-scale **Microsoft Azure data platforms** — especially with **Databricks, Snowflake, Microsoft Fabric, ADF, and dbt** — with a strong focus on **reusable, maintainable, production-ready architecture**." [ref=e76]':
+              - paragraph [ref=e79]:
+                - text: I design and deliver enterprise-scale
+                - strong [ref=e80]: Microsoft Azure data platforms
+                - text: — especially with
+                - strong [ref=e81]: Databricks, Snowflake, Microsoft Fabric, ADF, and dbt
+                - text: — with a strong focus on
+                - strong [ref=e82]: reusable, maintainable, production-ready architecture
+                - text: .
+            - generic [ref=e84]:
+              - button "Copy message" [ref=e85] [cursor=pointer]
+              - button "Retry" [ref=e90] [cursor=pointer]
+              - button "Undo" [ref=e97] [cursor=pointer]:
+                - img "undo" [ref=e99]
+      - generic [ref=e108]:
+        - generic [ref=e109]: Textbox
+        - generic [ref=e110]:
+          - textbox "Textbox" [active] [ref=e111]:
+            - /placeholder: ""
+          - button [ref=e112] [cursor=pointer]
+  - status [ref=e116]
