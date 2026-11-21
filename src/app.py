@@ -27,7 +27,8 @@ def chat(message, history):
     return response.choices[0].message.content
 
 
-if __name__ == "__main__":
+def launch():
+    """Build the chat UI and start the Gradio server."""
     gr.ChatInterface(
         chat,
         examples=EXAMPLES,
@@ -35,3 +36,7 @@ if __name__ == "__main__":
         description="Talk to my AI twin about my career",
         chatbot=gr.Chatbot(show_label=False, height="55vh", min_height=360),
     ).launch(css=CSS, js=JS, theme=gr.themes.Base(), allowed_paths=[str(BANNER_IMAGE)])
+
+
+if __name__ == "__main__":
+    launch()

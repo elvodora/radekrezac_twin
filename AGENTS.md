@@ -35,6 +35,8 @@ There are no tests or linters configured.
 
 Deploys to Vercel as a container image (`Dockerfile.vercel` at the repo root). `vercel.json` must keep `"framework": "container"`; otherwise Vercel detects `src/app.py` as FastAPI and the build fails. It is triggered by GitHub pushes: `main` goes to production and other branches to preview. Runtime secrets are set as Vercel project environment variables. Full setup: `doc/cicd.md`.
 
+Cold starts: the container entrypoint is `src/boot.py`, not `src/app.py`. It serves a self-refreshing "AI Twin is loading" page from a stdlib HTTP server while `src.app` imports (about 10 s), then hands the port to Gradio via `src.app.launch()`. Keep `src/app.py` free of import-time launching, and keep `boot.py` stdlib-only so it binds the port before any heavy import. See `doc/loading_agent_info.md`.
+
 ## Change log
 
 Record every change set in `changes/change-YYYY-MM-DD-HH-mm-<short-description>.md` (what changed, why, files touched).
